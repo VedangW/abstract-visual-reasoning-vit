@@ -1,21 +1,18 @@
-
 import time
 import argparse
 import numpy as np
 
-from dataset import IRavenDataset
 from data_utils import ToTensor
+from dataset import IRavenDataset
 
 from training import TrainerAndEvaluator
 from models import CnnLstm
 
-import torch.nn as nn
-import torch.optim as optim
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader, Subset
+from torch.utils.data import DataLoader, Subset
 
-import torchvision.models as models
-from torchvision import transforms, utils
+from torchvision import transforms
+
 
 parser = argparse.ArgumentParser(description='our_model')
 

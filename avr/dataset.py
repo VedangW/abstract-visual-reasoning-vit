@@ -1,3 +1,5 @@
+import os
+import glob
 import numpy as np
 
 import torch
@@ -24,7 +26,6 @@ class IRavenDataset(Dataset):
         data = np.load(data_path)
         image = data["image"].reshape(16, 160, 160)
         target = data["target"]
-        structure = data["structure"]
         meta_target = data["meta_target"]
         meta_structure = data["meta_structure"]
 
@@ -45,7 +46,6 @@ class IRavenDataset(Dataset):
 
         embedding = torch.zeros((6, 300), dtype=torch.float)
         indicator = torch.zeros(1, dtype=torch.float)
-        element_idx = 0
     
         del data
         if self.transform:
