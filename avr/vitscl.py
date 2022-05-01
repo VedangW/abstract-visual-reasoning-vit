@@ -1,4 +1,5 @@
 #!pip install scattering-transform
+# pascal, titan, volta, ampere
 
 import os
 import glob
@@ -81,12 +82,12 @@ class Args:
     def __init__(self,):
         self.model = 'ViT_SCL'
         self.epochs = 100
-        self.batch_size = 16
+        self.batch_size = 48
         self.seed = 12345
-        self.device = 3
+        self.device = 0
         self.load_workers = 16
         self.resume = False
-        self.path = '/filer/tmp1/ps851/'
+        self.path = '/scratch/vw120/visual_reasoning_data/'
         self.save = './ckpt_res/'
         self.img_size = 80
         self.lr = 1e-4
@@ -185,7 +186,7 @@ class BasicModel(nn.Module):
 
 
 
-from torch._C import device
+# from torch._C import device
 TO_IMG = transforms.ToPILImage()
 
 def to_image(b):
@@ -198,10 +199,13 @@ class ViTSCL(BasicModel):
     def __init__(self, args):
         super(ViTSCL, self).__init__(args)
 
+        print("Initializing ViT Feature Extractor...", end="")
         self.encoder = ViTFeatureExtractor(do_resize=True).from_pretrained("google/vit-base-patch16-224-in21k")
         self.encoder.image_mean = [0.5]
         self.encoder.image_std = [0.5]
+        print("Done.")
 
+        print("Initializing Scattering Compositional Learner...", end="")
         self.scl = SCL(
             image_size = args.scl_image_size,                           # size of image
             set_size = args.scl_set_size,                               # number of questions + 1 answer
@@ -214,6 +218,7 @@ class ViTSCL(BasicModel):
         )
 
         self.decoder = SCLTrainingWrapper(self.scl)
+        print("Done.")
 
         self.verbose = args.verbose
 
@@ -353,12 +358,16 @@ def test(epoch, save_file):
     return acc_all/float(counter)
 
 
+print("Building model...")
 model = ViTSCL(args)
 model = model.cuda()
-
+print("Completed building model!\n")
 
 SAVE_FILE = "ViTSCL_dat100_eps200_" + time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime()) + "_" + str(args.perc_train)
 
+print("All outputs will be saved to file '" + SAVE_FILE + "'.\n")
+
+print("Training model...\n")
 for epoch in range(0, args.epochs):
     t0 = time.time()
     train(epoch, SAVE_FILE)
@@ -366,3 +375,4 @@ for epoch in range(0, args.epochs):
     test_acc = test(epoch, SAVE_FILE)
     model.save_model(args.save, epoch, avg_acc, avg_loss)
     print("Time taken = {:.4f} s\n".format(time.time() - t0))
+print("Model training complete!")
