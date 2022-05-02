@@ -9,11 +9,46 @@ from torch.utils.data import DataLoader, Subset
 from torchvision import transforms
 
 from config import Args
-from dataset import dataset
+from dataset import IRAVENDataset
 from models_layers import ViTSCL
 
 import warnings
 warnings.filterwarnings("ignore")
+
+
+class ToTensor(object):
+    def __call__(self, sample):
+        return torch.tensor(sample, dtype=torch.float32)
+
+
+args = Args()
+
+args.cuda = torch.cuda.is_available()
+torch.cuda.set_device(args.device)
+torch.cuda.manual_seed(args.seed)
+
+if not os.path.exists(args.save):
+    os.makedirs(args.save)
+
+train = IRAVENDataset(args.path, "train", args.img_size, transform=transforms.Compose([ToTensor()]),shuffle=True)
+valid = IRAVENDataset(args.path, "val", args.img_size, transform=transforms.Compose([ToTensor()]))
+test = IRAVENDataset(args.path, "test", args.img_size, transform=transforms.Compose([ToTensor()]))
+
+subset_indices = np.random.choice(len(train), len(train)*args.perc_train // 100, replace=False)
+train_subset = Subset(train, subset_indices)
+
+print("Number of samples in original train set =", len(train))
+print("Number of samples in train subset =", len(train_subset))
+print("All samples are unique =", len(subset_indices) == len(set(subset_indices)))
+
+trainloader = DataLoader(train_subset, batch_size=args.batch_size, shuffle=True, num_workers=16)
+validloader = DataLoader(valid, batch_size=args.batch_size, shuffle=False, num_workers=16)
+testloader = DataLoader(test, batch_size=args.batch_size, shuffle=False, num_workers=16)
+
+model = ViTSCL(args)
+model = model.cuda()
+
+SAVE_FILE = "ViTSCL_dat100_eps200_" + time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime()) + "_" + str(args.perc_train)
 
 ### Helper functions
 
@@ -101,39 +136,6 @@ def test(epoch, save_file):
             f.write(save_str + "\n")
     return acc_all/float(counter)
 
-class ToTensor(object):
-    def __call__(self, sample):
-        return torch.tensor(sample, dtype=torch.float32)
-
-
-args = Args()
-
-args.cuda = torch.cuda.is_available()
-torch.cuda.set_device(args.device)
-torch.cuda.manual_seed(args.seed)
-
-if not os.path.exists(args.save):
-    os.makedirs(args.save)
-
-train = dataset(args.path, "train", args.img_size, transform=transforms.Compose([ToTensor()]),shuffle=True)
-valid = dataset(args.path, "val", args.img_size, transform=transforms.Compose([ToTensor()]))
-test = dataset(args.path, "test", args.img_size, transform=transforms.Compose([ToTensor()]))
-
-subset_indices = np.random.choice(len(train), len(train)*args.perc_train // 100, replace=False)
-train_subset = Subset(train, subset_indices)
-
-print("Number of samples in original train set =", len(train))
-print("Number of samples in train subset =", len(train_subset))
-print("All samples are unique =", len(subset_indices) == len(set(subset_indices)))
-
-trainloader = DataLoader(train_subset, batch_size=args.batch_size, shuffle=True, num_workers=16)
-validloader = DataLoader(valid, batch_size=args.batch_size, shuffle=False, num_workers=16)
-testloader = DataLoader(test, batch_size=args.batch_size, shuffle=False, num_workers=16)
-
-model = ViTSCL(args)
-model = model.cuda()
-
-SAVE_FILE = "ViTSCL_dat100_eps200_" + time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime()) + "_" + str(args.perc_train)
 
 for epoch in range(0, args.epochs):
     t0 = time.time()

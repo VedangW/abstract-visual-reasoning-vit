@@ -7,7 +7,7 @@ import torch
 from torch.utils.data import Dataset
 
 
-class dataset(Dataset):
+class IRAVENDataset(Dataset):
     def __init__(self, root_dir, dataset_type, img_size, transform=None, shuffle=False):
         self.root_dir = root_dir
         self.transform = transform

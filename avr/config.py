@@ -8,10 +8,10 @@ class Args:
         self.device = 0
         self.load_workers = 16
         self.resume = False
-        self.path = '/content/drive/MyDrive/data_pri'
+        self.path = '/scratch/vw120/visual_reasoning_data/'
         self.save = './ckpt_res/'
         self.img_size = 80
-        self.lr = 1e-4
+        self.lr = 1e-2
         self.beta1 = 0.9
         self.beta2 = 0.999
         self.epsilon = 1e-8
@@ -41,5 +41,5 @@ class Args:
         self.scl_conv_output_dim = 64
         self.scl_attr_heads = 8
         self.scl_attr_net_hidden_dims = [64]
-        self.scl_rel_heads = 80
+        self.scl_rel_heads = 64
         self.scl_rel_net_hidden_dims = [50, 25, 5]

@@ -142,7 +142,7 @@ class ViTSCL(BasicModel):
         return loss
 
     def forward(self, x, embedding, indicator):
-        questions = x[:, :8, :, :]
+        questions = x[:, :8, :,  :]
         answers = x[:, 8:, :, :]
 
         q = self.reshape_input_batch(questions)
