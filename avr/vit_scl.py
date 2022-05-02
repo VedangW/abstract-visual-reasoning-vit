@@ -30,7 +30,7 @@ torch.cuda.manual_seed(args.seed)
 if not os.path.exists(args.save):
     os.makedirs(args.save)
 
-train = IRAVENDataset(args.path, "train", args.img_size, transform=transforms.Compose([ToTensor()]),shuffle=True)
+train = IRAVENDataset(args.path, "train", args.img_size, transform=transforms.Compose([ToTensor()]), shuffle=True)
 valid = IRAVENDataset(args.path, "val", args.img_size, transform=transforms.Compose([ToTensor()]))
 test = IRAVENDataset(args.path, "test", args.img_size, transform=transforms.Compose([ToTensor()]))
 
@@ -48,7 +48,19 @@ testloader = DataLoader(test, batch_size=args.batch_size, shuffle=False, num_wor
 model = ViTSCL(args)
 model = model.cuda()
 
-SAVE_FILE = "ViTSCL_dat100_eps200_" + time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime()) + "_" + str(args.perc_train)
+def generate_save_file_path(args):
+    fname = args.model +\ 
+            "_perc" + str(args.perc_train) +\ 
+            "_eps" + str(args.epochs) +\
+            time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime())
+
+    dirname = "experiments/checkpoints/"
+
+    return dirname + fname
+
+
+save_file = generate_save_file_path(args)
+print("Saving results to '" + save_file + "'.\n")
 
 ### Helper functions
 
@@ -137,10 +149,12 @@ def test(epoch, save_file):
     return acc_all/float(counter)
 
 
+print("Training model...\n")
 for epoch in range(0, args.epochs):
     t0 = time.time()
-    train(epoch, SAVE_FILE)
-    avg_loss, avg_acc = validate(epoch, SAVE_FILE)
-    test_acc = test(epoch, SAVE_FILE)
+    train(epoch, save_file)
+    avg_loss, avg_acc = validate(epoch, save_file)
+    test_acc = test(epoch, save_file)
     model.save_model(args.save, epoch, avg_acc, avg_loss)
     print("Time taken = {:.4f} s\n".format(time.time() - t0))
+print("Model trained!\n")

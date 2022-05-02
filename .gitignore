@@ -1,2 +1,4 @@
 data
 data/*
+avr/experiments/checkpoints
+avr/experiments/checkpoints/*

@@ -3,14 +3,14 @@ class Args:
     def __init__(self,):
         self.model = 'ViT_SCL'
         self.epochs = 100
-        self.batch_size = 10
+        self.batch_size = 16
         self.seed = 12345
         self.device = 0
         self.load_workers = 16
         self.resume = False
         self.path = '/scratch/vw120/visual_reasoning_data/'
         self.save = './ckpt_res/'
-        self.img_size = 80
+        self.img_size = 64
         self.lr = 1e-2
         self.beta1 = 0.9
         self.beta2 = 0.999
