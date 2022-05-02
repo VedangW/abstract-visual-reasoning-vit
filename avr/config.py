@@ -1,25 +1,33 @@
 class Args:
     
     def __init__(self,):
-        self.model = 'ViT_SCL'
-        self.epochs = 100
-        self.batch_size = 16
         self.seed = 12345
+        self.cuda = True
+        self.distributed = True
+
+        # Model settings
+        self.path = '/scratch/vw120/visual_reasoning_data/'
+        self.save = './ckpt_res/'
         self.device = 0
         self.load_workers = 16
         self.resume = False
-        self.path = '/scratch/vw120/visual_reasoning_data/'
-        self.save = './ckpt_res/'
+        self.verbose = False
+
+        # Training settings
+        self.model = 'ViT_SCL'
+        self.epochs = 100
+        self.batch_size = 16
+        self.perc_train = 100
         self.img_size = 64
+        
+        # Optimizer settings
         self.lr = 1e-2
         self.beta1 = 0.9
         self.beta2 = 0.999
         self.epsilon = 1e-8
         self.meta_alpha = 0.
         self.meta_beta = 0.
-        self.perc_train = 100
-        self.verbose = False
-
+        
         # ViT parameters
         self.vit_requires_grad = False
         self.vec2image_input_dim = 768

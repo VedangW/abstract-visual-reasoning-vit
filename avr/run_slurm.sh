@@ -2,10 +2,11 @@
 
 #SBATCH --partition=gpu           # Partition (job queue)
 #SBATCH --requeue                 # Return job to the queue if preempted
-#SBATCH --job-name=absvis        # Assign an short name to your job
+#SBATCH --job-name=absvis         # Assign an short name to your job
 #SBATCH --cpus-per-task=1         # Cores per task (>1 if multithread tasks)
 #SBATCH --mem-per-cpu=16000M      # Real memory (RAM) required
 #SBATCH --gres=gpu:2              # Generic resources
+#SBATCH --constraint="ampere"     # GPU card
 #SBATCH --time=02:00:00           # Total run time limit (HH:MM:SS)
 #SBATCH --error=/scratch/vw120/absvis-results/slurm.avr.%N.%j.err
 #SBATCH --out=/scratch/vw120/absvis-results/slurm.avr.%N.%j.out

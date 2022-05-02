@@ -51,7 +51,7 @@ class IRAVENDataset(Dataset):
         if self.transform:
             resize_image = self.transform(resize_image)
             target = torch.tensor(target, dtype=torch.long)
-            meta_target = self.transform(meta_target)
-            meta_structure = self.transform(meta_structure)
-            meta_target = torch.tensor(meta_target, dtype=torch.long)
+            # meta_target = self.transform(meta_target)
+            # meta_structure = self.transform(meta_structure)
+            # meta_target = torch.tensor(meta_target, dtype=torch.long)
         return resize_image, target, meta_target, meta_structure, embedding, indicator

@@ -20,13 +20,13 @@ class BasicModel(nn.Module):
     def save_model(self, path, epoch, acc, loss):
         torch.save({'state_dict': self.state_dict(), 'acc': acc, 'loss': loss}, path+'{}_epoch_{}.pth'.format(self.name, epoch))
 
-    def compute_loss(self, output, target, meta_target, meta_structure):
+    def compute_loss(self, output, target):
         pass
 
-    def train_(self, image, target, meta_target, meta_structure, embedding, indicator):
+    def train_(self, image, target):
         self.optimizer.zero_grad()
-        output = self(image, embedding, indicator)
-        loss = self.compute_loss(output, target, meta_target, meta_structure)
+        output = self(image)
+        loss = self.compute_loss(output, target)
         loss.backward()
         self.optimizer.step()
         pred = output[0].data.max(1)[1]
@@ -34,18 +34,18 @@ class BasicModel(nn.Module):
         accuracy = correct * 100.0 / target.size()[0]
         return loss.item(), accuracy
 
-    def validate_(self, image, target, meta_target, meta_structure, embedding, indicator):
+    def validate_(self, image, target):
         with torch.no_grad():
-            output = self(image, embedding, indicator)
-        loss = self.compute_loss(output, target, meta_target, meta_structure)
+            output = self(image)
+        loss = self.compute_loss(output, target)
         pred = output[0].data.max(1)[1]
         correct = pred.eq(target.data).cpu().sum().numpy()
         accuracy = correct * 100.0 / target.size()[0]
         return loss.item(), accuracy
 
-    def test_(self, image, target, meta_target, meta_structure, embedding, indicator):
+    def test_(self, image, target):
         with torch.no_grad():
-            output = self(image, embedding, indicator)
+            output = self(image)
         pred = output[0].data.max(1)[1]
         correct = pred.eq(target.data).cpu().sum().numpy()
         accuracy = correct * 100.0 / target.size()[0]
@@ -65,7 +65,6 @@ class Vec2Image(nn.Module):
 
         if len(output_dim) != 3:
             raise ValueError("output_dim must be 3d.")
-
         
         self.input_dim = input_dim
         self.output_dim = output_dim
@@ -136,12 +135,12 @@ class ViTSCL(BasicModel):
         self.reshape_input_batch = transforms.Lambda(lambda x: x.reshape((x.shape[0]*x.shape[1], x.shape[2], x.shape[3])))
         self.resize_to_vit_size = transforms.Resize((224, 224))
 
-    def compute_loss(self, output, target, meta_target, meta_structure):
+    def compute_loss(self, output, target):
         pred = output[0]
         loss = F.cross_entropy(pred, target)
         return loss
 
-    def forward(self, x, embedding, indicator):
+    def forward(self, x):
         questions = x[:, :8, :,  :]
         answers = x[:, 8:, :, :]
 
