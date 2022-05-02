@@ -15,4 +15,4 @@
 source /home/vw120/miniconda3/bin/activate
 conda activate absvis
 
-srun python /home/vw120/AbstractVisualReasoning/avr/vit_scl.py
+srun python /home/vw120/AbstractVisualReasoning/avr/train.py
