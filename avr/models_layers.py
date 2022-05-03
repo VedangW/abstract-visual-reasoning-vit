@@ -4,7 +4,7 @@ import torch.optim as optim
 import torch.nn.functional as F
 
 from torchvision import transforms
-from transformers import ViTForImageClassification
+from transformers import BeitConfig, BeitModel, ViTForImageClassification
 from scattering_transform import SCL, SCLTrainingWrapper
 
 
@@ -29,7 +29,7 @@ class BasicModel(nn.Module):
         loss = self.compute_loss(output, target)
         loss.backward()
         self.optimizer.step()
-        pred = output[0].data.max(1)[1]
+        pred = output[0] > 0.0
         correct = pred.eq(target.data).cpu().sum().numpy()
         accuracy = correct * 100.0 / target.size()[0]
         return loss.item(), accuracy
@@ -38,7 +38,7 @@ class BasicModel(nn.Module):
         with torch.no_grad():
             output = self(image)
         loss = self.compute_loss(output, target)
-        pred = output[0].data.max(1)[1]
+        pred = output[0] > 0.0
         correct = pred.eq(target.data).cpu().sum().numpy()
         accuracy = correct * 100.0 / target.size()[0]
         return loss.item(), accuracy
@@ -46,7 +46,7 @@ class BasicModel(nn.Module):
     def test_(self, image, target):
         with torch.no_grad():
             output = self(image)
-        pred = output[0].data.max(1)[1]
+        pred = output[0] > 0.0
         correct = pred.eq(target.data).cpu().sum().numpy()
         accuracy = correct * 100.0 / target.size()[0]
         return accuracy
@@ -159,3 +159,86 @@ class ViTSCL(BasicModel):
         logits = self.decoder(q_imgs, a_imgs)
 
         return logits, None
+
+
+class BEiTForAbstractVisualReasoning(nn.Module):
+
+    def __init__(self, fc_layer_sizes=[64, 32, 8], beit_patch_size=80, 
+                 beit_num_channels=1, beit_image_size=240, beit_freeze=True, 
+                 beit_freeze_perc=60, beit_pretrained_ckpt='microsoft/beit-base-patch16-224', 
+                 verbose=True) -> None:
+        super(BEiTForAbstractVisualReasoning, self).__init__()
+
+        self.verbose = verbose
+
+        # BEiT
+
+        self.beit_freeze = beit_freeze
+        self.beit_freeze_perc = beit_freeze_perc
+        self.beit_patch_size = beit_patch_size
+        self.beit_num_channels = beit_num_channels
+        self.beit_image_size = beit_image_size
+        self.beit_pretrained_ckpt = beit_pretrained_ckpt
+
+        self.beit_config = BeitConfig(patch_size=self.beit_patch_size, 
+                                      num_channels=self.beit_num_channels, 
+                                      image_size=self.beit_image_size).\
+                                      from_pretrained(self.beit_pretrained_ckpt)
+
+        self.beit = BeitModel(self.beit_config)
+
+        if self.beit_freeze:
+            print("Freezing first {0}% of parameters of BEiT.".format(self.beit_freeze_perc))
+
+            self.beit_total_named_params = len(list(self.beit.named_parameters()))
+            self.unfreeze_last = self.beit_total_named_params - \
+                (self.beit_total_named_params*self.beit_freeze_perc//100)
+            
+            print("Last {0} parameters remain unfrozen.".format(self.unfreeze_last))
+
+            for name, param in list(self.beit.named_parameters())[:-self.unfreeze_last]:
+                param.requires_grad = False
+
+        # MLP
+
+        self.fc_layer_sizes = fc_layer_sizes
+
+        if not self.fc_layer_sizes:
+            raise ValueError("Need at least 1 FC layer!")
+
+        if self.fc_layer_sizes[0] != 768:
+            self.fc_layer_sizes = [768] + self.fc_layer_sizes
+
+        if self.fc_layer_sizes[-1] != 1 and self.fc_layer_sizes[-1] > 1:
+            self.fc_layer_sizes += [1]
+        elif self.fc_layer_sizes[-1] < 1:
+            raise ValueError("Invalid fc_layer_sizes!")
+
+        self.mlp_layers = nn.ModuleList([])
+
+        for i in range(len(self.fc_layer_sizes)-1):
+            self.mlp_layers.append(nn.Linear(self.fc_layer_sizes[i], self.fc_layer_sizes[i+1]))
+            if i != len(self.fc_layer_sizes)-2:
+                self.mlp_layers.append(nn.ReLU())
+
+        self.criterion = nn.BCEWithLogitsLoss()
+
+    def compute_loss(self, output, target):
+        pred = output[0]
+        loss = self.criterion(pred, target)
+        return loss
+
+    def forward(self, x, output_attentions=False):
+        beit_outs = self.beit(x, output_attentions=output_attentions)
+
+        x_mlp = beit_outs['last_hidden_state'][:, 0, :]
+
+        if output_attentions and 'attentions' in beit_outs.keys():
+            attns = beit_outs['attentions']
+        else:
+            attns = None
+
+        for layer in self.mlp_layers:
+            x_mlp = layer(x_mlp)
+
+        return x_mlp, attns

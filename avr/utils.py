@@ -1,79 +1,71 @@
-import os
+import torch
+from torchvision import transforms
 
 
-def setup_for_distributed(is_master):
-    """
-    This function disables printing when not in master process
-    """
-    import builtins as __builtin__
-    builtin_print = __builtin__.print
+grayscale_to_rgb_batch = transforms.Lambda(
+    lambda x: torch.stack([a.reshape((1, a.shape[0], a.shape[1])).repeat(3, 1, 1) for a in x])
+)
 
-    def print(*args, **kwargs):
-        force = kwargs.pop('force', False)
-        if is_master or force:
-            builtin_print(*args, **kwargs)
+rpm_transforms = transforms.Compose([transforms.Resize((224, 224))])
 
-    __builtin__.print = print
+def construct_rpm_from_patches(context_panels, choice_panel, masked_patch=False, transforms=None):
+    """ Constructs a whole RPM from the 8 context panels """
 
+    row1 = [context_panels[0], context_panels[1], context_panels[2]]
+    row2 = [context_panels[3], context_panels[4], context_panels[5]]
 
-def is_dist_avail_and_initialized():
-    if not dist.is_available():
-        return False
-    if not dist.is_initialized():
-        return False
-    return True
-
-
-def get_world_size():
-    if not is_dist_avail_and_initialized():
-        return 1
-    return dist.get_world_size()
-
-
-def get_rank():
-    if not is_dist_avail_and_initialized():
-        return 0
-    return dist.get_rank()
-
-
-def is_main_process():
-    return get_rank() == 0
-
-
-def save_on_master(*args, **kwargs):
-    if is_main_process():
-        torch.save(*args, **kwargs)
-
-
-def init_distributed_mode(args):
-    if args.dist_on_itp:
-        args.rank = int(os.environ['OMPI_COMM_WORLD_RANK'])
-        args.world_size = int(os.environ['OMPI_COMM_WORLD_SIZE'])
-        args.gpu = int(os.environ['OMPI_COMM_WORLD_LOCAL_RANK'])
-        args.dist_url = "tcp://%s:%s" % (os.environ['MASTER_ADDR'], os.environ['MASTER_PORT'])
-        os.environ['LOCAL_RANK'] = str(args.gpu)
-        os.environ['RANK'] = str(args.rank)
-        os.environ['WORLD_SIZE'] = str(args.world_size)
-        # ["RANK", "WORLD_SIZE", "MASTER_ADDR", "MASTER_PORT", "LOCAL_RANK"]
-    elif 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
-        args.rank = int(os.environ["RANK"])
-        args.world_size = int(os.environ['WORLD_SIZE'])
-        args.gpu = int(os.environ['LOCAL_RANK'])
-    elif 'SLURM_PROCID' in os.environ:
-        args.rank = int(os.environ['SLURM_PROCID'])
-        args.gpu = args.rank % torch.cuda.device_count()
+    if masked_patch:
+        mask = torch.zeros((context_panels.shape[-3], context_panels.shape[-2], context_panels.shape[-1]))
+        row3 = [context_panels[6], context_panels[7], mask]
     else:
-        print('Not using distributed mode')
-        args.distributed = False
-        return
+        row3 = [context_panels[6], context_panels[7], choice_panel]
 
-    args.distributed = True
+    row1 = torch.cat(row1, dim=1)
+    row2 = torch.cat(row2, dim=1)
+    row3 = torch.cat(row3, dim=1)
 
-    torch.cuda.set_device(args.gpu)
-    args.dist_backend = 'nccl'
-    print('| distributed init (rank {}): {}, gpu {}'.format(
-        args.rank, args.dist_url, args.gpu), flush=True)
-    torch.distributed.init_process_group(backend=args.dist_backend, init_method=args.dist_url,
-                                         world_size=args.world_size, rank=args.rank)
-    torch.distributed.barrier()
-    setup_for_distributed(args.rank == 0)
+    rpm = torch.cat([row1, row2, row3], dim=2)
+    if transforms:
+        rpm = transforms(rpm)
+
+    return rpm
+
+
+def rpm_panels_to_img_samples(rpm_sample, target):
+    """ For one RPM problem, generates image samples. """
+
+    q_sample = rpm_sample[:8, :, :]
+    a_sample = rpm_sample[8:, :, :]
+
+    q_sample = grayscale_to_rgb_batch(q_sample)
+    a_sample = grayscale_to_rgb_batch(a_sample)
+
+    binary_samples, binary_targets = [], []
+
+    for i in range(8):
+        binary_samples.append(construct_rpm_from_patches(q_sample, a_sample[i], transforms=rpm_transforms))
+        if i == target:
+            binary_targets.append(1)
+        else:
+            binary_targets.append(0)
+
+    binary_samples = torch.stack(binary_samples)
+    binary_targets = torch.tensor(binary_targets)
+
+    return binary_samples, binary_targets
+
+
+def batch_to_bin_images(batch, target):
+    X_bin, y_bin = [], []
+
+    for x, y in zip(batch, target):
+        binary_samples, binary_targets = rpm_panels_to_img_samples(x, y)
+
+        X_bin += binary_samples
+        y_bin += binary_targets
+
+    X_bin = torch.stack(X_bin)
+    y_bin = torch.stack(y_bin)
+
+    return X_bin, y_bin
+
