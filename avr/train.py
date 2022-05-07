@@ -8,6 +8,7 @@ import torch.backends.cudnn as cudnn
 from torch.utils.data import DataLoader, Subset
 
 from torchvision import transforms
+from panel_transforms import RotateByAngle, HorizontalFlip, VerticalFlip
 
 from config import Args
 from dataset import IRAVENDataset
@@ -22,7 +23,11 @@ class ToTensor(object):
     def __call__(self, sample):
         return torch.tensor(sample, dtype=torch.float32)
 
-
+augmentations = [RotateByAngle(90), 
+                 RotateByAngle(-90), 
+                 RotateByAngle(180), 
+                 HorizontalFlip(), 
+                 VerticalFlip()]
 
 args = Args()
 
@@ -77,20 +82,21 @@ print("Saving results to '" + save_file + "'.\n")
 
 ### Helper functions
 
-def train(epoch, save_file):
+def train(epoch, save_file, augmentations=None):
     model.train()
     train_loss = 0
     accuracy = 0
     loss_all = 0.0
     acc_all = 0.0
     counter = 0
+
     for batch_idx, (image, target, _, _, _, _) in enumerate(trainloader):
         with open("./ckpt_res/batch.pkl", "wb") as f:
             pickle.dump({'images': image, 'target': target}, f)
             return "end"
         
         counter += 1
-        image, target = batch_to_bin_images(image, target)
+        image, target = batch_to_bin_images(image, target, augmentations=augmentations)
 
         if args.cuda:
             image = image.to(device)
@@ -175,7 +181,7 @@ def test(epoch, save_file):
 print("Training model...\n")
 for epoch in range(0, args.epochs):
     t0 = time.time()
-    acc = train(epoch, save_file)
+    acc = train(epoch, save_file, augmentations=augmentations)
 
     if acc == "end":
         print("Ending early...")
