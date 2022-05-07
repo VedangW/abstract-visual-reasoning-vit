@@ -161,13 +161,13 @@ class ViTSCL(BasicModel):
         return logits, None
 
 
-class BEiTForAbstractVisualReasoning(nn.Module):
+class BEiTForAbstractVisualReasoning(BasicModel):
 
-    def __init__(self, fc_layer_sizes=[64, 32, 8], beit_patch_size=80, 
+    def __init__(self, args, fc_layer_sizes=[64, 32, 8], beit_patch_size=80, 
                  beit_num_channels=1, beit_image_size=240, beit_freeze=True, 
                  beit_freeze_perc=60, beit_pretrained_ckpt='microsoft/beit-base-patch16-224', 
                  verbose=True) -> None:
-        super(BEiTForAbstractVisualReasoning, self).__init__()
+        super(BEiTForAbstractVisualReasoning, self).__init__(args)
 
         self.verbose = verbose
 
@@ -222,10 +222,12 @@ class BEiTForAbstractVisualReasoning(nn.Module):
                 self.mlp_layers.append(nn.ReLU())
 
         self.criterion = nn.BCEWithLogitsLoss()
+        self.optimizer = optim.Adam(self.parameters(), lr=args.lr, betas=(args.beta1, args.beta2), eps=args.epsilon)
+
 
     def compute_loss(self, output, target):
-        pred = output[0]
-        loss = self.criterion(pred, target)
+        pred = output[0].squeeze().float()
+        loss = self.criterion(pred, target.float())
         return loss
 
     def forward(self, x, output_attentions=False):

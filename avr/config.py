@@ -7,7 +7,7 @@ class Args:
         self.dist_on_itp = False
 
         # Model settings
-        self.path = '/filer/tmp1/ps851/'
+        self.path = '/scratch/vw120/visual_reasoning_data/'
         self.save = './ckpt_res/'
         self.device = 0
         self.load_workers = 16

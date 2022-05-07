@@ -60,7 +60,7 @@ validloader = DataLoader(valid, batch_size=args.batch_size, shuffle=False, num_w
 testloader = DataLoader(test, batch_size=args.batch_size, shuffle=False, num_workers=16)
 
 print("Model = %s" % args.model)
-model = BEiTForAbstractVisualReasoning()
+model = BEiTForAbstractVisualReasoning(args)
 model = model.to(device)
 total_trainable_vars = sum(p.numel() for p in model.parameters() if p.requires_grad)
 print("{0} trainable variables.".format(total_trainable_vars))
