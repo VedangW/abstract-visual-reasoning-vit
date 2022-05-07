@@ -91,12 +91,16 @@ def train(epoch, save_file, augmentations=None):
     counter = 0
 
     for batch_idx, (image, target, _, _, _, _) in enumerate(trainloader):
-        with open("./ckpt_res/batch.pkl", "wb") as f:
-            pickle.dump({'images': image, 'target': target}, f)
-            return "end"
+        # with open("./ckpt_res/batch.pkl", "wb") as f:
+        #     pickle.dump({'images': image, 'target': target}, f)
+        #     return "end"
         
         counter += 1
         image, target = batch_to_bin_images(image, target, augmentations=augmentations)
+
+        # if batch_idx == 0:
+        #     print("No. of samples in image =", image.shape[0])
+        #     print("Distribution of target =", torch.unique(target, return_counts=True))
 
         if args.cuda:
             image = image.to(device)

@@ -9,7 +9,7 @@ class Args:
         # Model settings
         self.path = '/filer/tmp1/ps851/'
         self.save = './ckpt_res/'
-        self.device = 3
+        self.device = 0
         self.load_workers = 16
         self.resume = False
         self.verbose = False
@@ -17,7 +17,7 @@ class Args:
         # Training settings
         self.model = 'BEiT_MLP'
         self.epochs = 100
-        self.batch_size = 10
+        self.batch_size = 6
         self.perc_train = 20
         self.img_size = 80
         

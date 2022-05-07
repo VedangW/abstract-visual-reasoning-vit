@@ -29,7 +29,7 @@ class BasicModel(nn.Module):
         loss = self.compute_loss(output, target)
         loss.backward()
         self.optimizer.step()
-        pred = output[0] > 0.0
+        pred = output[0].data.max(1)[1]
         correct = pred.eq(target.data).cpu().sum().numpy()
         accuracy = correct * 100.0 / target.size()[0]
         return loss.item(), accuracy
@@ -38,7 +38,7 @@ class BasicModel(nn.Module):
         with torch.no_grad():
             output = self(image)
         loss = self.compute_loss(output, target)
-        pred = output[0] > 0.0
+        pred = output[0].data.max(1)[1]
         correct = pred.eq(target.data).cpu().sum().numpy()
         accuracy = correct * 100.0 / target.size()[0]
         return loss.item(), accuracy
@@ -46,7 +46,7 @@ class BasicModel(nn.Module):
     def test_(self, image, target):
         with torch.no_grad():
             output = self(image)
-        pred = output[0] > 0.0
+        pred = output[0].data.max(1)[1]
         correct = pred.eq(target.data).cpu().sum().numpy()
         accuracy = correct * 100.0 / target.size()[0]
         return accuracy
@@ -242,3 +242,31 @@ class BEiTForAbstractVisualReasoning(nn.Module):
             x_mlp = layer(x_mlp)
 
         return x_mlp, attns
+
+    def train_(self, image, target):
+        self.optimizer.zero_grad()
+        output = self(image)
+        loss = self.compute_loss(output, target)
+        loss.backward()
+        self.optimizer.step()
+        pred = output[0] > 0.0
+        correct = pred.eq(target.data).cpu().sum().numpy()
+        accuracy = correct * 100.0 / target.size()[0]
+        return loss.item(), accuracy
+
+    def validate_(self, image, target):
+        with torch.no_grad():
+            output = self(image)
+        loss = self.compute_loss(output, target)
+        pred = output[0] > 0.0
+        correct = pred.eq(target.data).cpu().sum().numpy()
+        accuracy = correct * 100.0 / target.size()[0]
+        return loss.item(), accuracy
+
+    def test_(self, image, target):
+        with torch.no_grad():
+            output = self(image)
+        pred = output[0] > 0.0
+        correct = pred.eq(target.data).cpu().sum().numpy()
+        accuracy = correct * 100.0 / target.size()[0]
+        return accuracy
