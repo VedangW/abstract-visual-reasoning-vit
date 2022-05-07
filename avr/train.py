@@ -1,5 +1,6 @@
 import os
 import time
+import pickle
 import numpy as np
 
 import torch
@@ -84,6 +85,10 @@ def train(epoch, save_file):
     acc_all = 0.0
     counter = 0
     for batch_idx, (image, target, _, _, _, _) in enumerate(trainloader):
+        with open("./ckpt_res/batch.pkl", "wb") as f:
+            pickle.dump({'images': image, 'target': target}, f)
+            return "end"
+        
         counter += 1
         image, target = batch_to_bin_images(image, target)
 
@@ -170,7 +175,12 @@ def test(epoch, save_file):
 print("Training model...\n")
 for epoch in range(0, args.epochs):
     t0 = time.time()
-    train(epoch, save_file)
+    acc = train(epoch, save_file)
+
+    if acc == "end":
+        print("Ending early...")
+        break
+
     avg_loss, avg_acc = validate(epoch, save_file)
     test_acc = test(epoch, save_file)
     model.save_model(args.save, epoch, avg_acc, avg_loss)
