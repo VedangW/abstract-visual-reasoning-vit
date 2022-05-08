@@ -1,2 +1,8 @@
 data
 data/*
+avr/experiments/checkpoints
+avr/experiments/checkpoints/*
+avr/__pycache__
+avr/__pycache__/*
+avr/ckpt_res
+avr/ckpt_res/*

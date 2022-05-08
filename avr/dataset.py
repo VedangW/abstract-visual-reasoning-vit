@@ -1,15 +1,13 @@
 import os
 import glob
 import numpy as np
-
-import torch
-from torch.utils.data import Dataset, DataLoader, Subset
-
 from skimage.transform import resize
 
+import torch
+from torch.utils.data import Dataset
 
-class IRavenDataset(Dataset):
 
+class IRAVENDataset(Dataset):
     def __init__(self, root_dir, dataset_type, img_size, transform=None, shuffle=False):
         self.root_dir = root_dir
         self.transform = transform
@@ -26,6 +24,7 @@ class IRavenDataset(Dataset):
         data = np.load(data_path)
         image = data["image"].reshape(16, 160, 160)
         target = data["target"]
+        structure = data["structure"]
         meta_target = data["meta_target"]
         meta_structure = data["meta_structure"]
 
@@ -46,12 +45,13 @@ class IRavenDataset(Dataset):
 
         embedding = torch.zeros((6, 300), dtype=torch.float)
         indicator = torch.zeros(1, dtype=torch.float)
+        element_idx = 0
     
         del data
         if self.transform:
             resize_image = self.transform(resize_image)
             target = torch.tensor(target, dtype=torch.long)
-            meta_target = self.transform(meta_target)
-            meta_structure = self.transform(meta_structure)
-            meta_target = torch.tensor(meta_target, dtype=torch.long)
+            # meta_target = self.transform(meta_target)
+            # meta_structure = self.transform(meta_structure)
+            # meta_target = torch.tensor(meta_target, dtype=torch.long)
         return resize_image, target, meta_target, meta_structure, embedding, indicator
