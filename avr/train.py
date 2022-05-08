@@ -31,9 +31,7 @@ augmentations = [RotateByAngle(90),
 
 args = Args()
 
-# utils.init_distributed_mode(args)
 args.cuda = torch.cuda.is_available()
-# torch.cuda.set_device(args.device)
 torch.cuda.manual_seed(args.seed)
 cudnn.benchmark = True
 
@@ -89,26 +87,12 @@ def train(epoch, save_file, augmentations=None):
     loss_all = 0.0
     acc_all = 0.0
     counter = 0
-
-    for batch_idx, (image, target, _, _, _, _) in enumerate(trainloader):
-        # with open("./ckpt_res/batch.pkl", "wb") as f:
-        #     pickle.dump({'images': image, 'target': target}, f)
-        #     return "end"
-        
+    for batch_idx, (image, target, _, _, _, _) in enumerate(trainloader): 
         counter += 1
         image, target = batch_to_bin_images(image, target, augmentations=augmentations)
-
-        # if batch_idx == 0:
-        #     print("No. of samples in image =", image.shape[0])
-        #     print("Distribution of target =", torch.unique(target, return_counts=True))
-
         if args.cuda:
             image = image.to(device)
             target = target.to(device)
-            # meta_target = meta_target.to(device)
-            # meta_structure = meta_structure.to(device)
-            # embedding = embedding.to(device)
-            # indicator = indicator.to(device)
         loss, acc = model.train_(image, target)
         save_str = 'Train: Epoch:{}, Batch:{}, Loss:{:.6f}, Acc:{:.4f}'.format(epoch, batch_idx, loss, acc)
         if counter % 20 == 0:
@@ -138,14 +122,9 @@ def validate(epoch, save_file):
     for batch_idx, (image, target, _, _, _, _) in enumerate(validloader):
         counter += 1
         image, target = batch_to_bin_images(image, target)
-
         if args.cuda:
             image = image.to(device)
             target = target.to(device)
-            # meta_target = meta_target.to(device)
-            # meta_structure = meta_structure.to(device)
-            # embedding = embedding.to(device)
-            # indicator = indicator.to(device)
         loss, acc = model.validate_(image, target)
         loss_all += loss
         acc_all += acc
@@ -164,14 +143,9 @@ def test(epoch, save_file):
     for batch_idx, (image, target, _, _, _, _) in enumerate(testloader):
         counter += 1
         image, target = batch_to_bin_images(image, target)
-        
         if args.cuda:
             image = image.to(device)
             target = target.to(device)
-            # meta_target = meta_target.to(device)
-            # meta_structure = meta_structure.to(device)
-            # embedding = embedding.to(device)
-            # indicator = indicator.to(device)
         acc = model.test_(image, target)
         acc_all += acc
     if counter > 0:
@@ -186,11 +160,6 @@ print("Training model...\n")
 for epoch in range(0, args.epochs):
     t0 = time.time()
     acc = train(epoch, save_file, augmentations=augmentations)
-
-    if acc == "end":
-        print("Ending early...")
-        break
-
     avg_loss, avg_acc = validate(epoch, save_file)
     test_acc = test(epoch, save_file)
     model.save_model(args.save, epoch, avg_acc, avg_loss)

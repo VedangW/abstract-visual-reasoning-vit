@@ -163,13 +163,14 @@ class ViTSCL(BasicModel):
 
 class BEiTForAbstractVisualReasoning(BasicModel):
 
-    def __init__(self, args, fc_layer_sizes=[64, 32, 8], beit_patch_size=80, 
+    def __init__(self, args, num_classes=8, fc_layer_sizes=[64, 32, 8], beit_patch_size=80, 
                  beit_num_channels=1, beit_image_size=240, beit_freeze=True, 
                  beit_freeze_perc=60, beit_pretrained_ckpt='microsoft/beit-base-patch16-224', 
                  verbose=True) -> None:
         super(BEiTForAbstractVisualReasoning, self).__init__(args)
 
         self.verbose = verbose
+        self.num_classes = num_classes
 
         # BEiT
 
@@ -225,8 +226,14 @@ class BEiTForAbstractVisualReasoning(BasicModel):
         self.optimizer = optim.Adam(self.parameters(), lr=args.lr, betas=(args.beta1, args.beta2), eps=args.epsilon)
 
 
-    def compute_loss(self, output, target):
-        pred = output[0].squeeze().float()
+    def compute_loss(self, output, target, test_mode=False):
+        if not test_mode:
+            pred = output[0].squeeze().float()
+        else:
+            pred = torch.stack(output).reshape(-1)
+            target = F.one_hot(target.to(torch.int64), 
+                               num_classes=self.num_classes).reshape(-1)
+
         loss = self.criterion(pred, target.float())
         return loss
 
@@ -245,30 +252,35 @@ class BEiTForAbstractVisualReasoning(BasicModel):
 
         return x_mlp, attns
 
-    def train_(self, image, target):
+    def predict_ranking(self, outputs):
+        return torch.stack([torch.argmax(x.squeeze()) for x in outputs])
+
+    def train_(self, images, target):
         self.optimizer.zero_grad()
-        output = self(image)
+        output = self(images)
         loss = self.compute_loss(output, target)
         loss.backward()
         self.optimizer.step()
-        pred = output[0] > 0.0
+        pred = torch.round(output[0])
         correct = pred.eq(target.data).cpu().sum().numpy()
         accuracy = correct * 100.0 / target.size()[0]
         return loss.item(), accuracy
 
-    def validate_(self, image, target):
+    def validate_(self, images, target):
+        target = torch.stack(target) if isinstance(target, list) else target 
         with torch.no_grad():
-            output = self(image)
-        loss = self.compute_loss(output, target)
-        pred = output[0] > 0.0
+            outputs = [self(image)[0] for image in images]
+        loss = self.compute_loss(outputs, target, test_mode=True)
+        pred = self.predict_ranking(outputs=outputs)
         correct = pred.eq(target.data).cpu().sum().numpy()
         accuracy = correct * 100.0 / target.size()[0]
         return loss.item(), accuracy
 
-    def test_(self, image, target):
+    def test_(self, images, target):
+        target = torch.stack(target) if isinstance(target, list) else target
         with torch.no_grad():
-            output = self(image)
-        pred = output[0] > 0.0
+            outputs = [self(image)[0] for image in images]
+        pred = self.predict_ranking(outputs=outputs)
         correct = pred.eq(target.data).cpu().sum().numpy()
         accuracy = correct * 100.0 / target.size()[0]
         return accuracy
