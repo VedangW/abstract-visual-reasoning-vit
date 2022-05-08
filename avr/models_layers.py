@@ -261,7 +261,7 @@ class BEiTForAbstractVisualReasoning(BasicModel):
         loss = self.compute_loss(output, target)
         loss.backward()
         self.optimizer.step()
-        pred = torch.round(output[0])
+        pred = torch.round(torch.sigmoid(output[0].squeeze()))
         correct = pred.eq(target.data).cpu().sum().numpy()
         accuracy = correct * 100.0 / target.size()[0]
         return loss.item(), accuracy

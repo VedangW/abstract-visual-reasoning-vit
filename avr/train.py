@@ -68,7 +68,7 @@ def generate_save_file_path(args):
     fname = args.model +\
             "_perc" + str(args.perc_train) +\
             "_eps" + str(args.epochs) +\
-            time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime())
+            "_" + time.strftime("%Y-%m-%d_%H:%M:%S", time.gmtime())
 
     dirname = "experiments/checkpoints/"
 
