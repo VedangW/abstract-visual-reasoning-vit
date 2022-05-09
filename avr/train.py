@@ -53,6 +53,11 @@ print("Number of samples in original train set =", len(train))
 print("Number of samples in train subset =", len(train_subset))
 print("All samples are unique =", len(subset_indices) == len(set(subset_indices)), "\n")
 
+print("Batch size = {0}, Percentage train = {1}".format(args.batch_size, args.perc_train))
+print("No. of training batches =", len(train_subset) // args.batch_size)
+print("No. of validation batches =", len(valid) // args.batch_size)
+print("No. of test batches =", len(test) // args.batch_size, "\n")
+
 trainloader = DataLoader(train_subset, batch_size=args.batch_size, shuffle=True, num_workers=16)
 validloader = DataLoader(valid, batch_size=args.batch_size, shuffle=False, num_workers=16)
 testloader = DataLoader(test, batch_size=args.batch_size, shuffle=False, num_workers=16)
@@ -121,11 +126,16 @@ def validate(epoch, save_file):
     batch_idx = 0
     for batch_idx, (image, target, _, _, _, _) in enumerate(validloader):
         counter += 1
-        image, target = batch_to_bin_images(image, target)
+        image, target = batch_to_bin_images(image, target, test_mode=True)
         if args.cuda:
             image = image.to(device)
             target = target.to(device)
         loss, acc = model.validate_(image, target)
+        save_str = 'Val: Epoch:{}, Batch:{}, Loss:{:.6f}, Acc:{:.4f}'.format(epoch, batch_idx, loss, acc)
+        if counter % 20 == 0:
+            print(save_str)
+            with open(save_file, 'a') as f:
+                f.write(save_str + "\n")
         loss_all += loss
         acc_all += acc
     if counter > 0:
@@ -142,11 +152,16 @@ def test(epoch, save_file):
     counter = 0
     for batch_idx, (image, target, _, _, _, _) in enumerate(testloader):
         counter += 1
-        image, target = batch_to_bin_images(image, target)
+        image, target = batch_to_bin_images(image, target, test_mode=True)
         if args.cuda:
             image = image.to(device)
             target = target.to(device)
         acc = model.test_(image, target)
+        save_str = 'Test: Epoch:{}, Batch:{}, Acc:{:.4f}'.format(epoch, batch_idx, acc)
+        if counter % 20 == 0:
+            print(save_str)
+            with open(save_file, 'a') as f:
+                f.write(save_str + "\n")
         acc_all += acc
     if counter > 0:
         save_str = "Test_: Total Testing Acc: {:.4f}".format((acc_all / float(counter)))

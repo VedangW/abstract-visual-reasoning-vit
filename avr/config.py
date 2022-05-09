@@ -18,7 +18,7 @@ class Args:
         self.model = 'BEiT_MLP'
         self.epochs = 100
         self.batch_size = 6
-        self.perc_train = 20
+        self.perc_train = 1
         self.img_size = 80
         
         # Optimizer settings

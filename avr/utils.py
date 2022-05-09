@@ -111,10 +111,10 @@ def batch_to_bin_images(batch, target, augmentations=None, test_mode=False):
             X_bin += binary_samples
             y_bin += binary_targets
 
-    if not test_mode:
-        X_bin = torch.stack(X_bin)
-        y_bin = torch.stack(y_bin)
+    X_bin = torch.stack(X_bin)
+    y_bin = torch.stack(y_bin)
 
+    if not test_mode:
         # Randomly shuffle training data
         rand_perm = torch.randperm(X_bin.size()[0])
         X_bin, y_bin = X_bin[rand_perm], y_bin[rand_perm]
