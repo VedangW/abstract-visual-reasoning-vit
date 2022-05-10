@@ -23,10 +23,10 @@ class ToTensor(object):
     def __call__(self, sample):
         return torch.tensor(sample, dtype=torch.float32)
 
-augmentations = [RotateByAngle(90), 
-                 RotateByAngle(-90), 
-                 RotateByAngle(180), 
-                 HorizontalFlip(), 
+augmentations = [RotateByAngle(90),
+                 RotateByAngle(-90),
+                 RotateByAngle(180),
+                 HorizontalFlip(),
                  VerticalFlip()]
 
 args = Args()
@@ -42,9 +42,31 @@ torch.cuda.empty_cache()
 if not os.path.exists(args.save):
     os.makedirs(args.save)
 
+def prune_files(dataset):
+    center_single_fnames = [x for x in dataset.file_names if '/center_single/' in x]
+    distribute_four_fnames = [x for x in dataset.file_names if '/distribute_four/' in x]
+    in_distribute_four_out_center_single_fnames = \
+        [x for x in dataset.file_names if '/in_distribute_four_out_center_single/' in x]
+    left_center_single_right_center_single_fnames = \
+        [x for x in dataset.file_names if '/left_center_single_right_center_single/' in x]
+
+    all_files = center_single_fnames + \
+                distribute_four_fnames + \
+                in_distribute_four_out_center_single_fnames + \
+                left_center_single_right_center_single_fnames
+
+    dataset.file_names = all_files
+
+    return dataset
+    
+
 train = IRAVENDataset(args.path, "train", args.img_size, transform=transforms.Compose([ToTensor()]), shuffle=True)
 valid = IRAVENDataset(args.path, "val", args.img_size, transform=transforms.Compose([ToTensor()]))
 test = IRAVENDataset(args.path, "test", args.img_size, transform=transforms.Compose([ToTensor()]))
+
+train = prune_files(train)
+valid = prune_files(valid)
+test = prune_files(test)
 
 subset_indices = np.random.choice(len(train), len(train)*args.perc_train // 100, replace=False)
 train_subset = Subset(train, subset_indices)
@@ -63,7 +85,7 @@ validloader = DataLoader(valid, batch_size=args.batch_size, shuffle=False, num_w
 testloader = DataLoader(test, batch_size=args.batch_size, shuffle=False, num_workers=16)
 
 print("Model = %s" % args.model)
-model = BEiTForAbstractVisualReasoning(args)
+model = BEiTForAbstractVisualReasoning(args, beit_freeze=True, beit_freeze_perc=40)
 model = model.to(device)
 total_trainable_vars = sum(p.numel() for p in model.parameters() if p.requires_grad)
 print("{0} trainable variables.".format(total_trainable_vars))

@@ -18,16 +18,20 @@ class Args:
         self.model = 'BEiT_MLP'
         self.epochs = 100
         self.batch_size = 6
-        self.perc_train = 1
+        self.perc_train = 100
         self.img_size = 80
         
         # Optimizer settings
-        self.lr = 1e-2
+        self.lr = 1e-4
         self.beta1 = 0.9
         self.beta2 = 0.999
         self.epsilon = 1e-8
         self.meta_alpha = 0.
         self.meta_beta = 0.
+
+        self.keep_configs = ['in_distribute_four_out_center_single', 
+                             'left_center_single_right_center_single', 
+                             'center_single', 'distribute_four']
 
         # BEiT Hyperparameters
 
