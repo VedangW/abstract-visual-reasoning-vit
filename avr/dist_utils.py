@@ -46,7 +46,7 @@ def save_on_master(*args, **kwargs):
         torch.save(*args, **kwargs)
 
 
-def init_distributed_mode(args):
+# def init_distributed_mode(args):
     # if args.world_size and args.rank:
     #     args.distributed = True
     # elif args.dist_on_itp:
